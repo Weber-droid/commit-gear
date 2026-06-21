@@ -1,0 +1,263 @@
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      operationId: registerUser
+      summary: Register a new buyer account
+      description: Creates a new user with default `buyer` role. Password is hashed server-side.
+      x-roles: [public]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/RegisterRequest'
+            example:
+              name: Ada Lovelace
+              email: ada@commitgear.dev
+              password: securePass123!
+      responses:
+        '201':
+          description: User registered successfully
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: '507f1f77bcf86cd799439011'
+                        name: Ada Lovelace
+                        email: ada@commitgear.dev
+                        role: buyer
+                      tokens:
+                        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                        expiresIn: 900
+        '400':
+          $ref: '../openapi.yaml#/components/responses/BadRequest'
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Email already in use
+                error:
+                  code: EMAIL_EXISTS
+        '429':
+          $ref: '../openapi.yaml#/components/responses/TooManyRequests'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: loginUser
+      summary: Authenticate and issue tokens
+      description: |
+        Validates credentials and returns an access token in the response body.
+        Sets a long-lived refresh token in an HttpOnly, Secure, SameSite=Strict cookie.
+      x-roles: [public]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/LoginRequest'
+            example:
+              email: ada@commitgear.dev
+              password: securePass123!
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh token cookie (7 day TTL)
+              schema:
+                type: string
+                example: refreshToken=abc123; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=604800
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      user:
+                        id: '507f1f77bcf86cd799439011'
+                        name: Ada Lovelace
+                        email: ada@commitgear.dev
+                        role: buyer
+                      tokens:
+                        accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                        expiresIn: 900
+        '400':
+          $ref: '../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Invalid email or password
+                error:
+                  code: INVALID_CREDENTIALS
+        '429':
+          $ref: '../openapi.yaml#/components/responses/TooManyRequests'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshTokens
+      summary: Rotate refresh token and issue new access token
+      description: |
+        Reads refresh token from HttpOnly cookie. Invalidates the presented refresh token
+        and issues a new access token plus a new refresh cookie (single-use rotation).
+      x-roles: [public]
+      security: []
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: true
+          schema:
+            type: string
+          description: HttpOnly refresh token cookie
+      responses:
+        '200':
+          description: Tokens refreshed
+          headers:
+            Set-Cookie:
+              description: New rotated refresh token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../openapi.yaml#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '../openapi.yaml#/components/schemas/AuthTokens'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                      expiresIn: 900
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Refresh token invalid or expired
+                error:
+                  code: REFRESH_TOKEN_INVALID
+        '429':
+          $ref: '../openapi.yaml#/components/responses/TooManyRequests'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutUser
+      summary: Invalidate session and clear refresh cookie
+      description: Removes the refresh token hash from the user document and clears the cookie.
+      x-roles: [buyer, vendor, admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: refreshToken
+          in: cookie
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Logged out successfully
+          headers:
+            Set-Cookie:
+              description: Cleared refresh token cookie
+              schema:
+                type: string
+                example: refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth; Max-Age=0
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../openapi.yaml#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          message:
+                            type: string
+                            example: Logged out successfully
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      message: Logged out successfully
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: Get authenticated user profile
+      x-roles: [buyer, vendor, admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/MeResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439011'
+                      name: Ada Lovelace
+                      email: ada@commitgear.dev
+                      role: buyer
+                      emailVerified: true
+                      createdAt: '2026-01-15T10:00:00.000Z'
+                      updatedAt: '2026-06-01T08:30:00.000Z'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'

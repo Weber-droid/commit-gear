@@ -1,0 +1,16 @@
+{
+  "name": "@commitgear/spec-tooling",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OpenAPI validation tooling for Commit Gear specs",
+  "scripts": {
+    "bundle:api": "redocly bundle ../api/openapi.yaml -o ../api/openapi.bundled.yaml",
+    "validate:api": "redocly lint ../api/openapi.yaml",
+    "lint:api": "npm run bundle:api && spectral lint ../api/openapi.bundled.yaml --ruleset ../api/spectral.yaml",
+    "check:all": "npm run validate:api && npm run lint:api"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.25.0",
+    "@stoplight/spectral-cli": "^6.14.0"
+  }
+}

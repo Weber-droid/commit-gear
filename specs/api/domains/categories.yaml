@@ -1,0 +1,235 @@
+paths:
+  /categories:
+    get:
+      tags: [Categories]
+      operationId: listCategories
+      summary: List all product categories
+      description: Cached endpoint. TTL 3600 seconds. Invalidated on category CRUD.
+      x-roles: [public]
+      security: []
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CategoryListResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - id: '507f1f77bcf86cd799439020'
+                        slug: hoodies
+                        name: Hoodies
+                        description: Premium developer hoodies
+                        productCount: 12
+                        createdAt: '2026-01-01T00:00:00.000Z'
+                        updatedAt: '2026-06-01T00:00:00.000Z'
+                      - id: '507f1f77bcf86cd799439021'
+                        slug: keycaps
+                        name: Keycaps
+                        description: Mechanical keyboard keycap sets
+                        productCount: 8
+                        createdAt: '2026-01-01T00:00:00.000Z'
+                        updatedAt: '2026-06-01T00:00:00.000Z'
+                      - id: '507f1f77bcf86cd799439022'
+                        slug: desk-pads
+                        name: Desk Pads
+                        description: Extended mouse pads for your battlestation
+                        productCount: 5
+                        createdAt: '2026-01-01T00:00:00.000Z'
+                        updatedAt: '2026-06-01T00:00:00.000Z'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+        '429':
+          $ref: '../openapi.yaml#/components/responses/TooManyRequests'
+
+    post:
+      tags: [Categories]
+      operationId: createCategory
+      summary: Create a category
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/CreateCategoryRequest'
+            example:
+              slug: hoodies
+              name: Hoodies
+              description: Premium developer hoodies
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CategoryResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439020'
+                      slug: hoodies
+                      name: Hoodies
+                      description: Premium developer hoodies
+                      productCount: 0
+                      createdAt: '2026-06-21T10:00:00.000Z'
+                      updatedAt: '2026-06-21T10:00:00.000Z'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '409':
+          description: Category slug already exists
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Category slug already exists
+                error:
+                  code: SLUG_EXISTS
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /categories/{id}:
+    get:
+      tags: [Categories]
+      operationId: getCategoryById
+      summary: Get category by ID
+      x-roles: [public]
+      security: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/ObjectIdParam'
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CategoryResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439020'
+                      slug: hoodies
+                      name: Hoodies
+                      description: Premium developer hoodies
+                      productCount: 12
+                      createdAt: '2026-01-01T00:00:00.000Z'
+                      updatedAt: '2026-06-01T00:00:00.000Z'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+    patch:
+      tags: [Categories]
+      operationId: updateCategory
+      summary: Update a category
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/UpdateCategoryRequest'
+            example:
+              name: Premium Hoodies
+              description: Updated category description
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/CategoryResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439020'
+                      slug: hoodies
+                      name: Premium Hoodies
+                      description: Updated category description
+                      productCount: 12
+                      createdAt: '2026-01-01T00:00:00.000Z'
+                      updatedAt: '2026-06-21T11:00:00.000Z'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+    delete:
+      tags: [Categories]
+      operationId: deleteCategory
+      summary: Delete a category
+      description: Fails if category has active products.
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/ObjectIdParam'
+      responses:
+        '200':
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../openapi.yaml#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            $ref: '../openapi.yaml#/components/schemas/ObjectId'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439020'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '409':
+          description: Category has active products
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Cannot delete category with active products
+                error:
+                  code: CATEGORY_HAS_PRODUCTS
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'

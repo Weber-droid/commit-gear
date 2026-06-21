@@ -1,0 +1,52 @@
+rules:
+  operation-operationId:
+    description: Every operation must have an operationId
+    message: '{{path}} is missing operationId'
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: operationId
+      function: truthy
+
+  operation-tags:
+    description: Every operation must have at least one tag
+    message: '{{path}} is missing tags'
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: tags
+      function: truthy
+
+  operation-2xx-response:
+    description: Operations must define at least one 2xx response
+    message: '{{path}} is missing a 2xx response'
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: responses
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          anyOf:
+            - required: ['200']
+            - required: ['201']
+            - required: ['204']
+
+  info-contact-present:
+    description: Info must include contact
+    message: info.contact is required
+    severity: error
+    given: $.info
+    then:
+      field: contact
+      function: truthy
+
+  info-license-present:
+    description: Info must include license
+    message: info.license is required
+    severity: error
+    given: $.info
+    then:
+      field: license
+      function: truthy

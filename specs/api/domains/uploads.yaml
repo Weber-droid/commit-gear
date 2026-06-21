@@ -1,0 +1,80 @@
+paths:
+  /uploads/images:
+    post:
+      tags: [Uploads]
+      operationId: uploadImage
+      summary: Upload product image via stream to Cloudinary
+      description: |
+        Accepts multipart form upload and pipes the file stream directly to Cloudinary
+        without buffering the entire file in Express memory.
+
+        **Constraints:**
+        - Max file size: 5 MB
+        - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
+        - Max dimensions after upload: 4000×4000 (Cloudinary transformation)
+        - Returns WebP-optimized `secure_url` when possible
+      x-roles: [vendor, admin]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG, PNG, or WebP)
+                folder:
+                  type: string
+                  default: products
+                  description: Cloudinary folder path
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, image/webp
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/UploadImageResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      publicId: products/keycap-terminal
+                      secureUrl: https://res.cloudinary.com/commitgear/image/upload/v1/products/keycap-terminal.webp
+                      width: 1200
+                      height: 1200
+                      format: webp
+        '400':
+          description: Invalid file type or size exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: File exceeds maximum size of 5MB
+                error:
+                  code: FILE_TOO_LARGE
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '500':
+          description: Cloudinary upload failed
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ErrorEnvelope'
+              example:
+                success: false
+                message: Image upload failed
+                error:
+                  code: UPLOAD_FAILED

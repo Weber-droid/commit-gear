@@ -1,0 +1,196 @@
+paths:
+  /admin/vendors:
+    get:
+      tags: [Admin]
+      operationId: listPendingVendors
+      summary: List users pending vendor approval
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/PageParam'
+        - $ref: '../openapi.yaml#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Pending vendor applications
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/VendorListResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - id: '507f1f77bcf86cd799439050'
+                        name: Grace Hopper
+                        email: grace@commitgear.dev
+                        role: buyer
+                        createdAt: '2026-06-10T08:00:00.000Z'
+                    meta:
+                      page: 1
+                      limit: 20
+                      total: 1
+                      totalPages: 1
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /admin/vendors/{id}/approve:
+    post:
+      tags: [Admin]
+      operationId: approveVendor
+      summary: Promote user to vendor role
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/ObjectIdParam'
+      responses:
+        '200':
+          description: User promoted to vendor
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '../openapi.yaml#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        $ref: '../openapi.yaml#/components/schemas/UserPublic'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439050'
+                      name: Grace Hopper
+                      email: grace@commitgear.dev
+                      role: vendor
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /admin/orders:
+    get:
+      tags: [Admin]
+      operationId: listAllOrders
+      summary: List all orders across users
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/PageParam'
+        - $ref: '../openapi.yaml#/components/parameters/LimitParam'
+        - name: paymentStatus
+          in: query
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/PaymentStatus'
+        - name: status
+          in: query
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/OrderStatus'
+      responses:
+        '200':
+          description: All orders (admin view)
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/OrderListResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      - id: '507f1f77bcf86cd799439040'
+                        userId: '507f1f77bcf86cd799439011'
+                        items:
+                          - productId: '507f1f77bcf86cd799439011'
+                            title: 'Commit Gear Hoodie — Graphite'
+                            priceAtPurchase: 4500000
+                            quantity: 1
+                            imageSnapshot: https://res.cloudinary.com/commitgear/image/upload/v1/hoodie-graphite.webp
+                        totalAmount: 4500000
+                        paymentStatus: paid
+                        paymentProvider: paystack
+                        paymentReference: T1234567890
+                        status: processing
+                        createdAt: '2026-06-21T13:00:00.000Z'
+                        updatedAt: '2026-06-21T13:05:00.000Z'
+                    meta:
+                      page: 1
+                      limit: 20
+                      total: 1
+                      totalPages: 1
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'
+
+  /admin/products/{id}/inventory:
+    patch:
+      tags: [Admin]
+      operationId: overrideInventory
+      summary: Admin inventory override
+      description: |
+        Directly sets product inventory. Triggers product detail and catalog cache eviction.
+        Audit log entry created server-side (implementation detail).
+      x-roles: [admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '../openapi.yaml#/components/parameters/ObjectIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../openapi.yaml#/components/schemas/InventoryOverrideRequest'
+            example:
+              inventory: 50
+              reason: Stock recount correction
+      responses:
+        '200':
+          description: Inventory updated
+          content:
+            application/json:
+              schema:
+                $ref: '../openapi.yaml#/components/schemas/ProductResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    data:
+                      id: '507f1f77bcf86cd799439011'
+                      title: 'Commit Gear Hoodie — Graphite'
+                      description: Premium heavyweight hoodie with embroidered logo
+                      price: 4500000
+                      category: hoodies
+                      images:
+                        - https://res.cloudinary.com/commitgear/image/upload/v1/hoodie-graphite.webp
+                      inventory: 50
+                      vendorId: '507f1f77bcf86cd799439012'
+                      isActive: true
+                      createdAt: '2026-03-01T12:00:00.000Z'
+                      updatedAt: '2026-06-21T15:00:00.000Z'
+        '400':
+          $ref: '../openapi.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: '../openapi.yaml#/components/responses/Unauthorized'
+        '403':
+          $ref: '../openapi.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: '../openapi.yaml#/components/responses/NotFound'
+        '500':
+          $ref: '../openapi.yaml#/components/responses/InternalError'

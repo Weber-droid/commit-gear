@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.*
+
+# Bundled output (generated in CI)
+openapi.bundled.yaml
+
+# OS
+.DS_Store
