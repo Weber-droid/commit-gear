@@ -2,7 +2,7 @@
 
 Production-oriented backend for **Commit Gear** , a premium developer merchandise marketplace. Built with Node.js, TypeScript, Express, MongoDB, Redis, and Paystack.
 
-The codebase is structured as a layered REST API with explicit separation of concerns, dependency injection, provider abstractions for external services, and defensive patterns around auth, inventory, payments, and caching.
+The codebase is structured as a layered REST API with explicit separation of concerns, dependency injection, provider abstractions for external services and defensive patterns around auth, inventory, payments, and caching.
 
 ---
 
